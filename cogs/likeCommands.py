@@ -64,10 +64,7 @@ class LikeCommands(commands.Cog):
     @app_commands.describe(channel="The channel to allow/disallow the /like command in.")
     async def set_like_channel(self, ctx: commands.Context, channel: discord.TextChannel):
         if ctx.guild is None:
-            if ctx.interaction:
-                await ctx.response.send_message("This command can only be used in a server.", ephemeral=True)
-            else:
-                await ctx.send("This command can only be used in a server.")
+            await ctx.send("This command can only be used in a server.", ephemeral=True)
             return
 
         guild_id = str(ctx.guild.id)
@@ -79,16 +76,11 @@ class LikeCommands(commands.Cog):
         if channel_id_str in like_channels:
             like_channels.remove(channel_id_str)
             self.save_config()
-            msg = f"✅ Channel {channel.mention} has been **removed** from allowed channels for /like commands. The command is now **disallowed** there."
+            await ctx.send(f"✅ Channel {channel.mention} has been **removed** from allowed channels for /like commands. The command is now **disallowed** there.", ephemeral=True)
         else:
             like_channels.append(channel_id_str)
             self.save_config()
-            msg = f"✅ Channel {channel.mention} is now **allowed** for /like commands. The command will **only** work in specified channels if any are set."
-
-        if ctx.interaction:
-            await ctx.response.send_message(msg, ephemeral=True)
-        else:
-            await ctx.send(msg)
+            await ctx.send(f"✅ Channel {channel.mention} is now **allowed** for /like commands. The command will **only** work in specified channels if any are set.", ephemeral=True)
 
     @commands.hybrid_command(name="like", description="Sends likes to a Free Fire player")
     @app_commands.describe(uid="Player UID (numbers only, minimum 6 characters)")
@@ -147,11 +139,8 @@ class LikeCommands(commands.Cog):
                         timestamp=datetime.now()
                     )
 
-                    # Correção: garantir que sent_likes seja string para usar startswith, ou converter para str
-                    sent_likes_str = str(sent_likes)
-
                     if success:
-                        if sent_likes_str.startswith("0"):
+                        if sent_likes.startswith("0"):
                             embed.description = "\n┌ERRO\n└─Este usuário já recebeu o máximo de likes hoje.\n"
                         else:
                             embed.description = (
@@ -159,9 +148,8 @@ class LikeCommands(commands.Cog):
                                 f"┌  SUCESSO\n"
                                 f"├─ USUÁRIO: {data.get('nickname', 'Unknown')}\n"
                                 f"├─ UID: {uid}\n"
-                                f"├─ SERVIDOR: {data.get('region', 'Desconhecido')}\n"
                                 f"└─ RESULTADO:\n"
-                                f"   ├─ ADICIONADO: +{sent_likes_str}\n"
+                                f"   ├─ ADICIONADO: +{sent_likes}\n"
                                 f"   ├─ ANTES: {data.get('likes_antes', 'N/A')}\n"
                                 f"   └─ DEPOIS: {data.get('likes_depois', 'N/A')}\n"
                             )
@@ -170,32 +158,19 @@ class LikeCommands(commands.Cog):
 
                     embed.set_footer(text="VorteX System")
                     embed.description += "\n🔗 ENTRE : https://discord.gg/RH8uBXWsvN"
-
-                    if is_slash:
-                        await ctx.response.send_message(embed=embed, ephemeral=True)
-                    else:
-                        await ctx.send(embed=embed, mention_author=True)
+                    await ctx.send(embed=embed, mention_author=True, ephemeral=is_slash)
 
         except asyncio.TimeoutError:
-            if is_slash:
-                await self._send_error_embed(ctx, "Timeout", "The server took too long to respond.", ephemeral=True)
-            else:
-                await self._send_error_embed(ctx, "Timeout", "The server took too long to respond.", ephemeral=False)
+            await self._send_error_embed(ctx, "Timeout", "The server took too long to respond.", ephemeral=is_slash)
         except Exception as e:
             print(f"Unexpected error in like_command: {e}")
-            if is_slash:
-                await self._send_error_embed(ctx, "⚡ Critical Error", "An unexpected error occurred. Please try again later.", ephemeral=True)
-            else:
-                await self._send_error_embed(ctx, "⚡ Critical Error", "An unexpected error occurred. Please try again later.", ephemeral=False)
+            await self._send_error_embed(ctx, "⚡ Critical Error", "An unexpected error occurred. Please try again later.", ephemeral=is_slash)
 
     async def _send_player_not_found(self, ctx, uid):
         embed = discord.Embed(title="❌ Usuário não encontrado", description=f"O ID {uid} NÃO EXISTE OU ESTÁ INACESSÍVEL.", color=0xE74C3C)
         embed.add_field(name="Tip", value="TENHA CERTEZA DE:\n- O ID ESTÁ CORRETO\n- O JOGADOR NÃO ESTÁ PRIVADO", inline=False)
-        if ctx.interaction:
-            await ctx.response.send_message(embed=embed, ephemeral=True)
-        else:
-            await ctx.send(embed=embed)
-
+        await ctx.send(embed=embed, ephemeral=True)
+        
     async def _send_api_limit_reached(self, ctx):
         embed = discord.Embed(
             title="⚠️ API Rate Limit Reached",
@@ -211,26 +186,17 @@ class LikeCommands(commands.Cog):
             ),
             inline=False
         )
-        if ctx.interaction:
-            await ctx.response.send_message(embed=embed, ephemeral=True)
-        else:
-            await ctx.send(embed=embed)
+        await ctx.send(embed=embed, ephemeral=True)
 
     async def _send_api_error(self, ctx):
         embed = discord.Embed(title="⚠️ Service Unavailable", description="The Free Fire API is not responding at the moment.", color=0xF39C12)
         embed.add_field(name="Solution", value="Try again in a few minutes.", inline=False)
-        if ctx.interaction:
-            await ctx.response.send_message(embed=embed, ephemeral=True)
-        else:
-            await ctx.send(embed=embed)
+        await ctx.send(embed=embed, ephemeral=True)
 
     async def _send_error_embed(self, ctx, title, description, ephemeral=True):
         embed = discord.Embed(title=f"❌ {title}", description=description, color=discord.Color.red(), timestamp=datetime.now())
         embed.set_footer(text="An error occurred.")
-        if ephemeral and ctx.interaction:
-            await ctx.response.send_message(embed=embed, ephemeral=True)
-        else:
-            await ctx.send(embed=embed)
+        await ctx.send(embed=embed, ephemeral=ephemeral)
 
     async def cog_unload(self):
         await self.session.close()
