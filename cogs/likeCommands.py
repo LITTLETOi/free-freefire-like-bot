@@ -132,34 +132,29 @@ class LikeCommands(commands.Cog):
                     data = await response.json()
                     success = data.get("status") == 200
                     sent_likes = data.get('sent', '0 likes')
-                    region = data.get("region", "N/A")
+
+                    if success and sent_likes.startswith("0"):
+                        embed = discord.Embed(description="\n┌ERRO\n└─Este usuário já recebeu o máximo de likes hoje.\n", color=0xE74C3C)
+                        await ctx.send(embed=embed, ephemeral=is_slash)
+                        return
 
                     embed = discord.Embed(
-                        title="VorteX Likes",
-                        color=0x2ECC71 if success else 0xE74C3C,
-                        timestamp=datetime.now()
+                        color=0x2ECC71 if success else 0xE74C3C
                     )
 
-                    if success:
-                        if sent_likes.startswith("0"):
-                            embed.description = "\n┌ERRO\n└─Este usuário já recebeu o máximo de likes hoje.\n"
-                        else:
-                            embed.description = (
-                                f"\n"
-                                f"┌  SUCESSO\n"
-                                f"├─ USUÁRIO: {data.get('nickname', 'Unknown')}\n"
-                                f"├─ UID: {uid}\n"
-                                f"├─ REGIÃO: {region}\n"
-                                f"└─ RESULTADO:\n"
-                                f"   ├─ ADICIONADO: +{sent_likes}\n"
-                                f"   ├─ ANTES: {data.get('likes_antes', 'N/A')}\n"
-                                f"   └─ DEPOIS: {data.get('likes_depois', 'N/A')}\n"
-                            )
-                    else:
-                        embed.description = "\n┌ERRO\n└─Este usuário já recebeu o máximo de likes hoje.\n"
+                    embed.description = (
+                        f"👍 **Likes Enviados**\n\n"
+                        f"🧑‍💻 **Nickname**\n{data.get('nickname', 'Unknown')}\n"
+                        f"🌐 **Região**\n{data.get('region', 'N/A')}\n"
+                        f"⭐ **Nível**\n{data.get('level', 'N/A')}\n"
+                        f"📊 **EXP**\n{data.get('exp', 'N/A')}\n"
+                        f"❤️ **Likes Antes**\n{data.get('likes_antes', 'N/A')}\n"
+                        f"❤️ **Likes Depois**\n{data.get('likes_depois', 'N/A')}\n"
+                        f"📩 **Resultado**\n{sent_likes} likes\n"
+                    )
 
-                    embed.set_footer(text="VorteX System")
-                    embed.description += "\n🔗 ENTRE : https://discord.gg/RH8uBXWsvN"
+                    embed.set_image(url="https://cdn.discordapp.com/attachments/1359752132579950685/1401313741345259591/f3fcf1b8bc493f13d38e0451ae6d2f78.gif?ex=688fd29f&is=688e811f&hm=567e73ae15c89ed241a500a823a5cfb739799360dd8418ba83ee95ad4bd75a6a&")
+                    embed.set_footer(text=f"Hoje às {datetime.now().strftime('%H:%M')}")
                     await ctx.send(embed=embed, mention_author=True, ephemeral=is_slash)
 
         except asyncio.TimeoutError:
@@ -172,7 +167,7 @@ class LikeCommands(commands.Cog):
         embed = discord.Embed(title="❌ Usuário não encontrado", description=f"O ID {uid} NÃO EXISTE OU ESTÁ INACESSÍVEL.", color=0xE74C3C)
         embed.add_field(name="Tip", value="TENHA CERTEZA DE:\n- O ID ESTÁ CORRETO\n- O JOGADOR NÃO ESTÁ PRIVADO", inline=False)
         await ctx.send(embed=embed, ephemeral=True)
-        
+
     async def _send_api_limit_reached(self, ctx):
         embed = discord.Embed(
             title="⚠️ API Rate Limit Reached",
