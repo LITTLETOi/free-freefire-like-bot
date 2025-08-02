@@ -132,6 +132,7 @@ class LikeCommands(commands.Cog):
                     data = await response.json()
                     success = data.get("status") == 200
                     sent_likes = data.get('sent', '0 likes')
+                    region = data.get("region", "N/A")
 
                     embed = discord.Embed(
                         title="VorteX Likes",
@@ -148,6 +149,7 @@ class LikeCommands(commands.Cog):
                                 f"┌  SUCESSO\n"
                                 f"├─ USUÁRIO: {data.get('nickname', 'Unknown')}\n"
                                 f"├─ UID: {uid}\n"
+                                f"├─ REGIÃO: {region}\n"
                                 f"└─ RESULTADO:\n"
                                 f"   ├─ ADICIONADO: +{sent_likes}\n"
                                 f"   ├─ ANTES: {data.get('likes_antes', 'N/A')}\n"
