@@ -126,7 +126,7 @@ class LikeCommands(commands.Cog):
                     data = await response.json()
                     embed = discord.Embed(
                         title="VorteX Likes",
-                        color=0x2ECC71 if data.get("status") == 1 else 0xE74C3C,
+                        color=0x2ECC71 if data.get("region") == 1 else 0xE74C3C,
                         timestamp=datetime.now()
                     )
 
