@@ -131,6 +131,8 @@ class LikeCommands(commands.Cog):
 
                     data = await response.json()
                     success = data.get("status") == 200
+                    sent_likes = data.get('sent', '0 likes')
+
                     embed = discord.Embed(
                         title="VorteX Likes",
                         color=0x2ECC71 if success else 0xE74C3C,
@@ -138,17 +140,19 @@ class LikeCommands(commands.Cog):
                     )
 
                     if success:
-                        embed.description = (
-                            f"\n"
-                            f"┌  SUCESSO\n"
-                            f"├─ USUÁRIO: {data.get('nickname', 'Unknown')}\n"
-                            f"├─ SERVIDOR: +{data.get('region', 'Desconhecido')}\n"
-                            f"├─ UID: {uid}\n"
-                            f"└─ RESULTADO:\n"
-                            f"   ├─ ADICIONADO: +{data.get('sent', '0 likes')}\n"
-                            f"   ├─ ANTES: {data.get('likes_antes', 'N/A')}\n"
-                            f"   └─ DEPOIS: {data.get('likes_depois', 'N/A')}\n"
-                        )
+                        if sent_likes.startswith("0"):
+                            embed.description = "\n┌ERRO\n└─Este usuário já recebeu o máximo de likes hoje.\n"
+                        else:
+                            embed.description = (
+                                f"\n"
+                                f"┌  SUCESSO\n"
+                                f"├─ USUÁRIO: {data.get('nickname', 'Unknown')}\n"
+                                f"├─ UID: {uid}\n"
+                                f"└─ RESULTADO:\n"
+                                f"   ├─ ADICIONADO: +{sent_likes}\n"
+                                f"   ├─ ANTES: {data.get('likes_antes', 'N/A')}\n"
+                                f"   └─ DEPOIS: {data.get('likes_depois', 'N/A')}\n"
+                            )
                     else:
                         embed.description = "\n┌ERRO\n└─Este usuário já recebeu o máximo de likes hoje.\n"
 
