@@ -24,7 +24,7 @@ class LikeCommands(commands.Cog):
         if RAPIDAPI_KEY:
             self.headers = {
                 'x-rapidapi-key': RAPIDAPI_KEY,
-                'x-rapidapi-host': "https://likes.ffgarena.cloud/api/v2"
+                'x-rapidapi-host': "likes.ffgarena.cloud"
             }
 
     def load_config(self):
@@ -101,48 +101,55 @@ class LikeCommands(commands.Cog):
             last_used = self.cooldowns[user_id]
             remaining = cooldown - (datetime.now() - last_used).seconds
             if remaining > 0:
-                await ctx.send(f"aguarde {remaining} segundos antes de tentar novamente.", ephemeral=is_slash)
+                if is_slash:
+                    await ctx.response.send_message(f"aguarde {remaining} segundos antes de tentar novamente.", ephemeral=True)
+                else:
+                    await ctx.send(f"aguarde {remaining} segundos antes de tentar novamente.")
                 return
         self.cooldowns[user_id] = datetime.now()
 
         if not uid.isdigit() or len(uid) < 6:
-            await ctx.reply("id inválido", mention_author=False, ephemeral=is_slash)
+            if is_slash:
+                await ctx.response.send_message("id inválido", ephemeral=True)
+            else:
+                await ctx.reply("id inválido", mention_author=False)
             return
-
 
         try:
             async with ctx.typing():
-                async with self.session.get(f"{self.api_host}/likes?uid=${uid}&amount_of_likes=100&auth=vortex", headers=self.headers) as response:
+                async with self.session.get(f"{self.api_host}/likes?uid={uid}&amount_of_likes=100&auth=vortex", headers=self.headers) as response:
                     if response.status == 404:
                         await self._send_player_not_found(ctx, uid)
                         return
-                    if response.status ==429 :
-                        await self._send_api_limit_reached
+                    if response.status == 429:
+                        await self._send_api_limit_reached(ctx)
+                        return
                     if response.status != 200:
                         print(f"API Error: {response.status} - {await response.text()}")
                         await self._send_api_error(ctx)
                         return
 
                     data = await response.json()
+                    success = data.get("status") == 200
                     embed = discord.Embed(
                         title="VorteX Likes",
-                        color=0x2ECC71 if data.get("region") == 1 else 0xE74C3C,
+                        color=0x2ECC71 if success else 0xE74C3C,
                         timestamp=datetime.now()
                     )
 
-                    if data.get("status") == 1:
+                    if success:
                         embed.description = (
                             f"\n"
                             f"┌  SUCESSO\n"
                             f"├─ USUÁRIO: {data.get('nickname', 'Unknown')}\n"
                             f"├─ UID: {uid}\n"
                             f"└─ RESULTADO:\n"
-                            f"   ├─ ADICIONADO: +{data.get('sent', 0)}\n"
+                            f"   ├─ ADICIONADO: +{data.get('sent', '0 likes')}\n"
                             f"   ├─ ANTES: {data.get('likes_antes', 'N/A')}\n"
                             f"   └─ DEPOIS: {data.get('likes_depois', 'N/A')}\n"
                         )
                     else:
-                        embed.description = "\n┌ERRO\n└─Este usuário ja recebeu o maximo de likes hoje.\n"
+                        embed.description = "\n┌ERRO\n└─Este usuário já recebeu o máximo de likes hoje.\n"
 
                     embed.set_footer(text="VorteX System")
                     embed.description += "\n🔗 ENTRE : https://discord.gg/RH8uBXWsvN"
@@ -156,14 +163,14 @@ class LikeCommands(commands.Cog):
 
     async def _send_player_not_found(self, ctx, uid):
         embed = discord.Embed(title="❌ Usuário não encontrado", description=f"O ID {uid} NÃO EXISTE OU ESTÁ INACESSÍVEL.", color=0xE74C3C)
-        embed.add_field(name="Tip", value="TENHA CERTEZA DE:\n- O ID ESTA CORRETO\n- O JOGADOR NÃO ESTA PRIVADO", inline=False)
+        embed.add_field(name="Tip", value="TENHA CERTEZA DE:\n- O ID ESTÁ CORRETO\n- O JOGADOR NÃO ESTÁ PRIVADO", inline=False)
         await ctx.send(embed=embed, ephemeral=True)
         
     async def _send_api_limit_reached(self, ctx):
         embed = discord.Embed(
             title="⚠️ API Rate Limit Reached",
             description="You have reached the maximum number of requests allowed by the API.",
-            color=0xF1C40F  # jaune/orangé
+            color=0xF1C40F
         )
         embed.add_field(
             name="Tip",
@@ -176,7 +183,6 @@ class LikeCommands(commands.Cog):
         )
         await ctx.send(embed=embed, ephemeral=True)
 
-
     async def _send_api_error(self, ctx):
         embed = discord.Embed(title="⚠️ Service Unavailable", description="The Free Fire API is not responding at the moment.", color=0xF39C12)
         embed.add_field(name="Solution", value="Try again in a few minutes.", inline=False)
@@ -187,8 +193,8 @@ class LikeCommands(commands.Cog):
         embed.set_footer(text="An error occurred.")
         await ctx.send(embed=embed, ephemeral=ephemeral)
 
-    def cog_unload(self):
-        self.bot.loop.create_task(self.session.close())
+    async def cog_unload(self):
+        await self.session.close()
 
 async def setup(bot):
     await bot.add_cog(LikeCommands(bot))
