@@ -15,7 +15,7 @@ CONFIG_FILE = "like_channels.json"
 class LikeCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.api_host = "https://free-fire-like1.p.rapidapi.com"
+        self.api_host = "https://likes.ffgarena.cloud/api/v2"
         self.config_data = self.load_config()
         self.cooldowns = {}
         self.session = aiohttp.ClientSession()
@@ -24,7 +24,7 @@ class LikeCommands(commands.Cog):
         if RAPIDAPI_KEY:
             self.headers = {
                 'x-rapidapi-key': RAPIDAPI_KEY,
-                'x-rapidapi-host': "free-fire-like1.p.rapidapi.com"
+                'x-rapidapi-host': "https://likes.ffgarena.cloud/api/v2"
             }
 
     def load_config(self):
@@ -88,7 +88,7 @@ class LikeCommands(commands.Cog):
         is_slash = ctx.interaction is not None
 
         if not await self.check_channel(ctx):
-            msg = "This command is not available in this channel. Please use it in an authorized channel."
+            msg = "COMANDO NÃO ESTA DISPONÍVEL NESSE CANAL."
             if is_slash:
                 await ctx.response.send_message(msg, ephemeral=True)
             else:
@@ -101,18 +101,18 @@ class LikeCommands(commands.Cog):
             last_used = self.cooldowns[user_id]
             remaining = cooldown - (datetime.now() - last_used).seconds
             if remaining > 0:
-                await ctx.send(f"Please wait {remaining} seconds before using this command again.", ephemeral=is_slash)
+                await ctx.send(f"aguarde {remaining} segundos antes de tentar novamente.", ephemeral=is_slash)
                 return
         self.cooldowns[user_id] = datetime.now()
 
         if not uid.isdigit() or len(uid) < 6:
-            await ctx.reply("Invalid UID. It must contain only numbers and be at least 6 characters long.", mention_author=False, ephemeral=is_slash)
+            await ctx.reply("id inválido", mention_author=False, ephemeral=is_slash)
             return
 
 
         try:
             async with ctx.typing():
-                async with self.session.get(f"{self.api_host}/like?uid={uid}", headers=self.headers) as response:
+                async with self.session.get(f"{self.api_host}/likes?uid=${uid}&amount_of_likes=100&auth=vortex", headers=self.headers) as response:
                     if response.status == 404:
                         await self._send_player_not_found(ctx, uid)
                         return
@@ -125,7 +125,7 @@ class LikeCommands(commands.Cog):
 
                     data = await response.json()
                     embed = discord.Embed(
-                        title="FREE FIRE LIKE",
+                        title="VorteX Likes",
                         color=0x2ECC71 if data.get("status") == 1 else 0xE74C3C,
                         timestamp=datetime.now()
                     )
@@ -133,19 +133,19 @@ class LikeCommands(commands.Cog):
                     if data.get("status") == 1:
                         embed.description = (
                             f"\n"
-                            f"┌  ACCOUNT\n"
-                            f"├─ NICKNAME: {data.get('player', 'Unknown')}\n"
+                            f"┌  SUCESSO\n"
+                            f"├─ USUÁRIO: {data.get('nickname', 'Unknown')}\n"
                             f"├─ UID: {uid}\n"
-                            f"└─ RESULT:\n"
-                            f"   ├─ ADDED: +{data.get('likes_added', 0)}\n"
-                            f"   ├─ BEFORE: {data.get('likes_before', 'N/A')}\n"
-                            f"   └─ AFTER: {data.get('likes_after', 'N/A')}\n"
+                            f"└─ RESULTADO:\n"
+                            f"   ├─ ADICIONADO: +{data.get('sent', 0)}\n"
+                            f"   ├─ ANTES: {data.get('likes_antes', 'N/A')}\n"
+                            f"   └─ DEPOIS: {data.get('likes_depois', 'N/A')}\n"
                         )
                     else:
-                        embed.description = "\n┌MAX LIKES\n└─This UID has already received the maximum likes today.\n"
+                        embed.description = "\n┌ERRO\n└─Este usuário ja recebeu o maximo de likes hoje.\n"
 
-                    embed.set_footer(text="DEVELOPED BY THUG")
-                    embed.description += "\n🔗 JOIN : https://discord.gg/awPm5B3QFg"
+                    embed.set_footer(text="VorteX System")
+                    embed.description += "\n🔗 ENTRE : https://discord.gg/RH8uBXWsvN"
                     await ctx.send(embed=embed, mention_author=True, ephemeral=is_slash)
 
         except asyncio.TimeoutError:
@@ -155,8 +155,8 @@ class LikeCommands(commands.Cog):
             await self._send_error_embed(ctx, "⚡ Critical Error", "An unexpected error occurred. Please try again later.", ephemeral=is_slash)
 
     async def _send_player_not_found(self, ctx, uid):
-        embed = discord.Embed(title="❌ Player Not Found", description=f"The UID {uid} does not exist or is not accessible.", color=0xE74C3C)
-        embed.add_field(name="Tip", value="Make sure that:\n- The UID is correct\n- The player is not private", inline=False)
+        embed = discord.Embed(title="❌ Usuário não encontrado", description=f"O ID {uid} NÃO EXISTE OU ESTÁ INACESSÍVEL.", color=0xE74C3C)
+        embed.add_field(name="Tip", value="TENHA CERTEZA DE:\n- O ID ESTA CORRETO\n- O JOGADOR NÃO ESTA PRIVADO", inline=False)
         await ctx.send(embed=embed, ephemeral=True)
         
     async def _send_api_limit_reached(self, ctx):
