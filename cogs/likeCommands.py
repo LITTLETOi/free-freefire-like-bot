@@ -142,6 +142,7 @@ class LikeCommands(commands.Cog):
                             f"\n"
                             f"┌  SUCESSO\n"
                             f"├─ USUÁRIO: {data.get('nickname', 'Unknown')}\n"
+                            f"├─ SERVIDOR: +{data.get('SERVER', 'Desconhecido')}\n"
                             f"├─ UID: {uid}\n"
                             f"└─ RESULTADO:\n"
                             f"   ├─ ADICIONADO: +{data.get('sent', '0 likes')}\n"
