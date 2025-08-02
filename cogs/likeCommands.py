@@ -150,7 +150,7 @@ class LikeCommands(commands.Cog):
                         f"📊 **EXP**\n{data.get('exp', 'N/A')}\n"
                         f"❤️ **Likes Antes**\n{data.get('likes_antes', 'N/A')}\n"
                         f"❤️ **Likes Depois**\n{data.get('likes_depois', 'N/A')}\n"
-                        f"📩 **Resultado**\n{sent_likes} likes\n"
+                        f"📩 **Resultado**\n{sent_likes} \n"
                     )
 
                     embed.set_image(url="https://cdn.discordapp.com/attachments/1359752132579950685/1401313741345259591/f3fcf1b8bc493f13d38e0451ae6d2f78.gif?ex=688fd29f&is=688e811f&hm=567e73ae15c89ed241a500a823a5cfb739799360dd8418ba83ee95ad4bd75a6a&")
