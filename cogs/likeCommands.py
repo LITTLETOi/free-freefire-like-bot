@@ -118,7 +118,7 @@ class LikeCommands(commands.Cog):
 
         try:
             async with ctx.typing():
-                url_primary = f"{self.api_host}/likes?uid={uid}&amount_of_likes=100&auth=vortex"
+                url_primary = f"{self.api_host}/likes?uid={uid}&amount_of_likes=100&auth=vortex&region=br"
                 url_ind = f"{self.api_host}/likes?uid={uid}&amount_of_likes=100&auth=vortex&region=ind"
 
                 async with self.session.get(url_primary, headers=self.headers) as response:
