@@ -10,8 +10,16 @@ from dotenv import load_dotenv
 import pytz
 
 load_dotenv()
+TOKEN = os.getenv('DISCORD_TOKEN')
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 CONFIG_FILE = "like_channels.json"
+
+intents = discord.Intents.default()
+intents.message_content = True
+intents.guilds = True
+intents.members = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 class LikeCommands(commands.Cog):
     def __init__(self, bot):
@@ -29,7 +37,7 @@ class LikeCommands(commands.Cog):
             }
 
     def load_config(self):
-        default_config = { "servers": {} }
+        default_config = {"servers": {}}
         if os.path.exists(CONFIG_FILE):
             try:
                 with open(CONFIG_FILE, 'r') as f:
@@ -37,12 +45,12 @@ class LikeCommands(commands.Cog):
                     loaded_config.setdefault("servers", {})
                     return loaded_config
             except json.JSONDecodeError:
-                print(f"WARNING: Configuration file '{CONFIG_FILE}' is corrupt. Resetting to default.")
+                print(f"WARNING: The configuration file '{CONFIG_FILE}' is corrupt or empty. Resetting to default configuration.")
         self.save_config(default_config)
         return default_config
 
     def save_config(self, config_to_save=None):
-        data_to_save = config_to_save if config_to_save else self.config_data
+        data_to_save = config_to_save if config_to_save is not None else self.config_data
         temp_file = CONFIG_FILE + ".tmp"
         with open(temp_file, 'w') as f:
             json.dump(data_to_save, f, indent=4)
@@ -55,8 +63,31 @@ class LikeCommands(commands.Cog):
         like_channels = self.config_data["servers"].get(guild_id, {}).get("like_channels", [])
         return not like_channels or str(ctx.channel.id) in like_channels
 
-    @commands.hybrid_command(name="like", description="Sends likes to a Free Fire player")
-    @app_commands.describe(uid="Player UID (numbers only)")
+    @commands.hybrid_command(name="setlikechannel", description="Define os canais onde o comando /like é permitido.")
+    @commands.has_permissions(administrator=True)
+    @app_commands.describe(channel="O canal para permitir ou desabilitar o comando /like.")
+    async def set_like_channel(self, ctx: commands.Context, channel: discord.TextChannel):
+        if ctx.guild is None:
+            await ctx.send("Esse comando só pode ser usado em servidores.", ephemeral=True)
+            return
+
+        guild_id = str(ctx.guild.id)
+        server_config = self.config_data["servers"].setdefault(guild_id, {})
+        like_channels = server_config.setdefault("like_channels", [])
+
+        channel_id_str = str(channel.id)
+
+        if channel_id_str in like_channels:
+            like_channels.remove(channel_id_str)
+            self.save_config()
+            await ctx.send(f"✅ Canal {channel.mention} removido dos canais permitidos.", ephemeral=True)
+        else:
+            like_channels.append(channel_id_str)
+            self.save_config()
+            await ctx.send(f"✅ Canal {channel.mention} adicionado aos canais permitidos.", ephemeral=True)
+
+    @commands.hybrid_command(name="like", description="Envia likes para um jogador do Free Fire")
+    @app_commands.describe(uid="ID do jogador (números)")
     async def like_command(self, ctx: commands.Context, uid: str):
         is_slash = ctx.interaction is not None
 
@@ -74,7 +105,7 @@ class LikeCommands(commands.Cog):
             last_used = self.cooldowns[user_id]
             remaining = cooldown - (datetime.now() - last_used).seconds
             if remaining > 0:
-                msg = f"aguarde {remaining} segundos antes de tentar novamente."
+                msg = f"Aguarde {remaining} segundos antes de tentar novamente."
                 if is_slash:
                     await ctx.response.send_message(msg, ephemeral=True)
                 else:
@@ -140,7 +171,7 @@ class LikeCommands(commands.Cog):
                     f"📊 **EXP**\n{data.get('exp', 'N/A')}\n"
                     f"❤️ **Likes Antes**\n{data.get('likes_antes', 'N/A')}\n"
                     f"❤️ **Likes Depois**\n{data.get('likes_depois', 'N/A')}\n"
-                    f"📩 **Resultado**\n{sent_likes}\n"
+                    f"📩 **Resultado**\n{sent_likes}"
                 )
                 embed.set_image(url="https://cdn.discordapp.com/attachments/1359752132579950685/1401313741345259591/f3fcf1b8bc493f13d38e0451ae6d2f78.gif")
                 tz = pytz.timezone('America/Sao_Paulo')
@@ -181,5 +212,21 @@ class LikeCommands(commands.Cog):
     async def cog_unload(self):
         await self.session.close()
 
-async def setup(bot):
+@bot.event
+async def on_ready():
+    print(f"Bot conectado como {bot.user}")
+    try:
+        synced = await bot.tree.sync()
+        print(f"Sincronizados {len(synced)} comandos de barra (/).")
+    except Exception as e:
+        print(f"Erro ao sincronizar comandos: {e}")
+
+async def setup():
     await bot.add_cog(LikeCommands(bot))
+
+async def main():
+    await setup()
+    await bot.start(TOKEN)
+
+if __name__ == "__main__":
+    asyncio.run(main())
