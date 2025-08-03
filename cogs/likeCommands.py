@@ -7,6 +7,7 @@ import json
 import os
 import asyncio
 from dotenv import load_dotenv
+import pytz  # Import do pytz para fuso horário correto
 
 load_dotenv()
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
@@ -117,7 +118,7 @@ class LikeCommands(commands.Cog):
 
         try:
             async with ctx.typing():
-                async with self.session.get(f"{self.api_host}/likes?uid={uid}&amount_of_likes=100&auth=vortex&region=ind", headers=self.headers) as response:
+                async with self.session.get(f"{self.api_host}/likes?uid={uid}&amount_of_likes=100&auth=vortex", headers=self.headers) as response:
                     if response.status == 404:
                         await self._send_player_not_found(ctx, uid)
                         return
@@ -154,7 +155,12 @@ class LikeCommands(commands.Cog):
                     )
 
                     embed.set_image(url="https://cdn.discordapp.com/attachments/1359752132579950685/1401313741345259591/f3fcf1b8bc493f13d38e0451ae6d2f78.gif?ex=688fd29f&is=688e811f&hm=567e73ae15c89ed241a500a823a5cfb739799360dd8418ba83ee95ad4bd75a6a&")
-                    embed.set_footer(text=f"Hoje às {datetime.now().strftime('%H:%M')}")
+                    
+                    # Correção do horário no footer usando pytz
+                    tz = pytz.timezone('America/Sao_Paulo')
+                    hora_local = datetime.now(tz).strftime('%H:%M')
+                    embed.set_footer(text=f"Hoje às {hora_local}")
+
                     await ctx.send(embed=embed, mention_author=True, ephemeral=is_slash)
 
         except asyncio.TimeoutError:
