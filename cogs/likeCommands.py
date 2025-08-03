@@ -118,50 +118,64 @@ class LikeCommands(commands.Cog):
 
         try:
             async with ctx.typing():
-                async with self.session.get(f"{self.api_host}/likes?uid={uid}&amount_of_likes=100&auth=vortex&region=ind", headers=self.headers) as response:
-                    if response.status == 404:
-                        await self._send_player_not_found(ctx, uid)
-                        return
-                    if response.status == 429:
+                url_primary = f"{self.api_host}/likes?uid={uid}&amount_of_likes=100&auth=vortex"
+                url_ind = f"{self.api_host}/likes?uid={uid}&amount_of_likes=100&auth=vortex&region=ind"
+
+                async with self.session.get(url_primary, headers=self.headers) as response:
+                    data = await response.json()
+                    if response.status == 404 or (data.get("status") == 404 and data.get("error") == "PLAYER_NOT_FOUND"):
+                        # Tenta a URL alternativa com region=ind
+                        async with self.session.get(url_ind, headers=self.headers) as resp2:
+                            data2 = await resp2.json()
+                            if resp2.status == 404 or (data2.get("status") == 404 and data2.get("error") == "PLAYER_NOT_FOUND"):
+                                # Não encontrou nem na alternativa
+                                await self._send_player_not_found(ctx, uid)
+                                return
+                            elif resp2.status != 200:
+                                print(f"API Error (alt): {resp2.status} - {await resp2.text()}")
+                                await self._send_api_error(ctx)
+                                return
+                            else:
+                                data = data2  # usa os dados da resposta alternativa
+                    elif response.status == 429:
                         await self._send_api_limit_reached(ctx)
                         return
-                    if response.status != 200:
+                    elif response.status != 200:
                         print(f"API Error: {response.status} - {await response.text()}")
                         await self._send_api_error(ctx)
                         return
 
-                    data = await response.json()
-                    success = data.get("status") == 200
-                    sent_likes = data.get('sent', '0 likes')
+                success = data.get("status") == 200
+                sent_likes = data.get('sent', '0 likes')
 
-                    if success and sent_likes.startswith("0"):
-                        embed = discord.Embed(description="\n┌ERRO\n└─Este usuário já recebeu o máximo de likes hoje.\n", color=0xE74C3C)
-                        await ctx.send(embed=embed, ephemeral=is_slash)
-                        return
+                if success and sent_likes.startswith("0"):
+                    embed = discord.Embed(description="\n┌ERRO\n└─Este usuário já recebeu o máximo de likes hoje.\n", color=0xE74C3C)
+                    await ctx.send(embed=embed, ephemeral=is_slash)
+                    return
 
-                    embed = discord.Embed(
-                        color=0x2ECC71 if success else 0xE74C3C
-                    )
+                embed = discord.Embed(
+                    color=0x2ECC71 if success else 0xE74C3C
+                )
 
-                    embed.description = (
-                        f"👍 **Likes Enviados**\n\n"
-                        f"🧑‍💻 **Nickname**\n{data.get('nickname', 'Unknown')}\n"
-                        f"🌐 **Região**\n{data.get('region', 'N/A')}\n"
-                        f"⭐ **Nível**\n{data.get('level', 'N/A')}\n"
-                        f"📊 **EXP**\n{data.get('exp', 'N/A')}\n"
-                        f"❤️ **Likes Antes**\n{data.get('likes_antes', 'N/A')}\n"
-                        f"❤️ **Likes Depois**\n{data.get('likes_depois', 'N/A')}\n"
-                        f"📩 **Resultado**\n{sent_likes} \n"
-                    )
+                embed.description = (
+                    f"👍 **Likes Enviados**\n\n"
+                    f"🧑‍💻 **Nickname**\n{data.get('nickname', 'Unknown')}\n"
+                    f"🌐 **Região**\n{data.get('region', 'N/A')}\n"
+                    f"⭐ **Nível**\n{data.get('level', 'N/A')}\n"
+                    f"📊 **EXP**\n{data.get('exp', 'N/A')}\n"
+                    f"❤️ **Likes Antes**\n{data.get('likes_antes', 'N/A')}\n"
+                    f"❤️ **Likes Depois**\n{data.get('likes_depois', 'N/A')}\n"
+                    f"📩 **Resultado**\n{sent_likes} \n"
+                )
 
-                    embed.set_image(url="https://cdn.discordapp.com/attachments/1359752132579950685/1401313741345259591/f3fcf1b8bc493f13d38e0451ae6d2f78.gif?ex=688fd29f&is=688e811f&hm=567e73ae15c89ed241a500a823a5cfb739799360dd8418ba83ee95ad4bd75a6a&")
-                    
-                    # Correção do horário no footer usando pytz
-                    tz = pytz.timezone('America/Sao_Paulo')
-                    hora_local = datetime.now(tz).strftime('%H:%M')
-                    embed.set_footer(text=f"Hoje às {hora_local}")
+                embed.set_image(url="https://cdn.discordapp.com/attachments/1359752132579950685/1401313741345259591/f3fcf1b8bc493f13d38e0451ae6d2f78.gif?ex=688fd29f&is=688e811f&hm=567e73ae15c89ed241a500a823a5cfb739799360dd8418ba83ee95ad4bd75a6a&")
 
-                    await ctx.send(embed=embed, mention_author=True, ephemeral=is_slash)
+                # Correção do horário no footer usando pytz
+                tz = pytz.timezone('America/Sao_Paulo')
+                hora_local = datetime.now(tz).strftime('%H:%M')
+                embed.set_footer(text=f"Hoje às {hora_local}")
+
+                await ctx.send(embed=embed, mention_author=True, ephemeral=is_slash)
 
         except asyncio.TimeoutError:
             await self._send_error_embed(ctx, "Timeout", "The server took too long to respond.", ephemeral=is_slash)
