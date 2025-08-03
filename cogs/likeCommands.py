@@ -7,7 +7,7 @@ import json
 import os
 import asyncio
 from dotenv import load_dotenv
-import pytz  # Import do pytz para fuso horário correto
+import pytz
 
 load_dotenv()
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
@@ -128,7 +128,6 @@ class LikeCommands(commands.Cog):
                         async with self.session.get(url_ind, headers=self.headers) as resp2:
                             data2 = await resp2.json()
                             if resp2.status == 404 or (data2.get("status") == 404 and data2.get("error") == "PLAYER_NOT_FOUND"):
-                                # Não encontrou nem na alternativa
                                 await self._send_player_not_found(ctx, uid)
                                 return
                             elif resp2.status != 200:
@@ -149,12 +148,22 @@ class LikeCommands(commands.Cog):
                 sent_likes = data.get('sent', '0 likes')
 
                 if success and sent_likes.startswith("0"):
-                    embed = discord.Embed(description="\n┌ERRO\n└─Este usuário já recebeu o máximo de likes hoje.\n", color=0xE74C3C)
+                    embed = discord.Embed(
+                        title="🚫 Likes esgotados!",
+                        description=f"O jogador **{data.get('nickname', 'Desconhecido')}** (ID: `{uid}`) já recebeu todos os likes permitidos hoje.\nVolte amanhã para tentar novamente.",
+                        color=0xE74C3C
+                    )
+                    embed.set_image(url="https://cdn.discordapp.com/attachments/1359752132579950685/1401313741345259591/f3fcf1b8bc493f13d38e0451ae6d2f78.gif?ex=688fd29f&is=688e811f&hm=567e73ae15c89ed241a500a823a5cfb739799360dd8418ba83ee95ad4bd75a6a&")
+
+                    tz = pytz.timezone('America/Sao_Paulo')
+                    hora_local = datetime.now(tz).strftime('%H:%M')
+                    embed.set_footer(text=f"Hoje às {hora_local}")
+
                     await ctx.send(embed=embed, ephemeral=is_slash)
                     return
 
                 embed = discord.Embed(
-                    color=0x2ECC71 if success else 0xE74C3C
+                    color=0x2ECC71
                 )
 
                 embed.description = (
@@ -170,7 +179,6 @@ class LikeCommands(commands.Cog):
 
                 embed.set_image(url="https://cdn.discordapp.com/attachments/1359752132579950685/1401313741345259591/f3fcf1b8bc493f13d38e0451ae6d2f78.gif?ex=688fd29f&is=688e811f&hm=567e73ae15c89ed241a500a823a5cfb739799360dd8418ba83ee95ad4bd75a6a&")
 
-                # Correção do horário no footer usando pytz
                 tz = pytz.timezone('America/Sao_Paulo')
                 hora_local = datetime.now(tz).strftime('%H:%M')
                 embed.set_footer(text=f"Hoje às {hora_local}")
