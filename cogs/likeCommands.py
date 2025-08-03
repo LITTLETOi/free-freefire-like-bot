@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 import pytz
 
 load_dotenv()
-TOKEN = os.getenv('DISCORD_TOKEN')
+TOKEN = os.getenv('TOKEN')  # Aqui lê a variável TOKEN do .env
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 CONFIG_FILE = "like_channels.json"
 
@@ -221,11 +221,8 @@ async def on_ready():
     except Exception as e:
         print(f"Erro ao sincronizar comandos: {e}")
 
-async def setup():
-    await bot.add_cog(LikeCommands(bot))
-
 async def main():
-    await setup()
+    await bot.add_cog(LikeCommands(bot))
     await bot.start(TOKEN)
 
 if __name__ == "__main__":
