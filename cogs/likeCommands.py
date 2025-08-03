@@ -118,7 +118,7 @@ class LikeCommands(commands.Cog):
 
         try:
             async with ctx.typing():
-                async with self.session.get(f"{self.api_host}/likes?uid={uid}&amount_of_likes=100&auth=vortex", headers=self.headers) as response:
+                async with self.session.get(f"{self.api_host}/likes?uid={uid}&amount_of_likes=100&auth=vortex&region=ind", headers=self.headers) as response:
                     if response.status == 404:
                         await self._send_player_not_found(ctx, uid)
                         return
