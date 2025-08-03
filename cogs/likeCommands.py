@@ -6,13 +6,10 @@ from datetime import datetime
 import json
 import os
 import asyncio
-from dotenv import load_dotenv
 import pytz
 
-load_dotenv()
-TOKEN = os.getenv('DISCORD_TOKEN')
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
-CONFIG_FILE = "like_channels.json"
+# Seu token direto aqui (substitua se quiser mudar depois)
+TOKEN = "MTM5ODc2ODAzMDkzODU2MjY1MA.Gt6pSf.7HMbEl8_1GylxdcPfTj6nvNiEN5URi_nZq1zFo"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -29,32 +26,28 @@ class LikeCommands(commands.Cog):
         self.cooldowns = {}
         self.session = aiohttp.ClientSession()
 
+        # Se quiser usar a API key do dotenv, pode fazer um fallback aqui
         self.headers = {}
-        if RAPIDAPI_KEY:
-            self.headers = {
-                'x-rapidapi-key': RAPIDAPI_KEY,
-                'x-rapidapi-host': "likes.ffgarena.cloud"
-            }
 
     def load_config(self):
         default_config = {"servers": {}}
-        if os.path.exists(CONFIG_FILE):
+        if os.path.exists("like_channels.json"):
             try:
-                with open(CONFIG_FILE, 'r') as f:
+                with open("like_channels.json", 'r') as f:
                     loaded_config = json.load(f)
                     loaded_config.setdefault("servers", {})
                     return loaded_config
             except json.JSONDecodeError:
-                print(f"WARNING: The configuration file '{CONFIG_FILE}' is corrupt or empty. Resetting to default configuration.")
+                print("WARNING: The configuration file 'like_channels.json' is corrupt or empty. Resetting to default configuration.")
         self.save_config(default_config)
         return default_config
 
     def save_config(self, config_to_save=None):
         data_to_save = config_to_save if config_to_save is not None else self.config_data
-        temp_file = CONFIG_FILE + ".tmp"
+        temp_file = "like_channels.json.tmp"
         with open(temp_file, 'w') as f:
             json.dump(data_to_save, f, indent=4)
-        os.replace(temp_file, CONFIG_FILE)
+        os.replace(temp_file, "like_channels.json")
 
     async def check_channel(self, ctx):
         if ctx.guild is None:
@@ -229,4 +222,5 @@ async def main():
     await bot.start(TOKEN)
 
 if __name__ == "__main__":
+    import asyncio
     asyncio.run(main())
