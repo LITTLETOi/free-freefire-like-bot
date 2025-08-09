@@ -18,7 +18,7 @@ CONFIG_FILE = "like_channels.json"
 def get_dev_button():
     view = View()
     view.add_item(Button(
-        label="👑 DEV",
+        label="👑 DESENVOLVEDOR",
         url="https://discord.gg/RH8uBXWsvN",
         style=discord.ButtonStyle.link
     ))
